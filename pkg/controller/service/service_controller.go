@@ -568,8 +568,9 @@ func portEqualForLB(x, y *v1.ServicePort) bool {
 		return false
 	}
 
-	// We don't check TargetPort; that is not relevant for load balancing
-	// TODO: Should we blank it out?  Or just check it anyway?
+	if !reflect.DeepEqual(x.TargetPort, y.TargetPort) {
+		return false
+	}
 
 	return true
 }
