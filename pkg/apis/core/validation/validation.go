@@ -4210,7 +4210,11 @@ func ValidateServiceExternalTrafficFieldsCombination(service *core.Service) fiel
 // ValidateServiceUpdate tests if required fields in the service are set during an update
 func ValidateServiceUpdate(service, oldService *core.Service) field.ErrorList {
 	allErrs := ValidateObjectMetaUpdate(&service.ObjectMeta, &oldService.ObjectMeta, field.NewPath("metadata"))
-
+	if val, ok := service.Annotations["service.beta.kubernetes.io/nks-load-balancer-platform"]; ok {
+		if val == "nks" {
+			return allErrs
+		}
+	}
 	// ClusterIP and IPFamily should be immutable for services using it (every type other than ExternalName)
 	// which do not have ClusterIP assigned yet (empty string value)
 	if service.Spec.Type != core.ServiceTypeExternalName {

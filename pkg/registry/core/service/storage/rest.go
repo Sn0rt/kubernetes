@@ -666,6 +666,11 @@ func allocateHealthCheckNodePort(service *api.Service, nodePortOp *portallocator
 
 // The return bool value indicates if a cluster IP is allocated successfully.
 func initClusterIP(service *api.Service, allocator ipallocator.Interface) (bool, error) {
+	if val, ok := service.Annotations["service.beta.kubernetes.io/nks-load-balancer-platform"]; ok {
+		if val == "nks" {
+			return true, nil
+		}
+	}
 	switch {
 	case service.Spec.ClusterIP == "":
 		// Allocate next available.

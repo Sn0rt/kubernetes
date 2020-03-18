@@ -242,9 +242,17 @@ func (c *Repair) runOnce() error {
 			c.recorder.Eventf(&svc, v1.EventTypeWarning, "ClusterIPAlreadyAllocated", "Cluster IP %s was assigned to multiple services; please recreate service", ip)
 			runtime.HandleError(fmt.Errorf("the cluster IP %s for service %s/%s was assigned to multiple services; please recreate", ip, svc.Name, svc.Namespace))
 		case err.(*ipallocator.ErrNotInRange):
-			// cluster IP is out of range
-			c.recorder.Eventf(&svc, v1.EventTypeWarning, "ClusterIPOutOfRange", "Cluster IP %s is not within the service CIDR %s; please recreate service", ip, c.network)
-			runtime.HandleError(fmt.Errorf("the cluster IP %s for service %s/%s is not within the service CIDR %s; please recreate", ip, svc.Name, svc.Namespace, c.network))
+			if val, ok := svc.Annotations["service.beta.kubernetes.io/nks-load-balancer-platform"]; ok {
+				if val == "nks" {
+					c.recorder.Eventf(&svc, v1.EventTypeNormal, "ClusterIPNotNeed", "Cluster IP %s is not needed cluster ip; please ignore service", svc.Spec.ClusterIP)
+					runtime.HandleError(fmt.Errorf("the cluster IP %s for service %s/%s is is not needed cluster ip; please ignore", svc.Spec.ClusterIP, svc.Name, svc.Namespace))
+					continue
+				}
+			} else {
+				// cluster IP is out of range
+				c.recorder.Eventf(&svc, v1.EventTypeWarning, "ClusterIPOutOfRange", "Cluster IP %s is not within the service CIDR %s; please recreate service", ip, c.network)
+				runtime.HandleError(fmt.Errorf("the cluster IP %s for service %s/%s is not within the service CIDR %s; please recreate", ip, svc.Name, svc.Namespace, c.network))
+			}
 		case ipallocator.ErrFull:
 			// somehow we are out of IPs
 			cidr := actualAlloc.CIDR()
